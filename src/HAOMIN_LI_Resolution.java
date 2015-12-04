@@ -1,3 +1,5 @@
+import java.util.ArrayList;
+
 import processing.core.PApplet;
 import processing.data.XML;
 
@@ -12,17 +14,98 @@ public class HAOMIN_LI_Resolution extends DrawableTree
 		
 	public void eliminateBiconditions()
 	{
-		// TODO - Implement the first step in converting logic in tree to CNF:
-		// Replace all biconditions with truth preserving conjunctions of conditions.
-		if (this.tree.getChild("bicondition") != null) {
-			
+		
+		// do a BFS to traverse through the tree
+		ArrayList<XML> queue = new ArrayList<XML>();
+		XML[] children = tree.getChildren();
+		for (XML xml : children) {
+			queue.add(xml);
 		}
-	}	
+		while (!queue.isEmpty()) {
+			XML cur = queue.remove(0);
+			if (cur.getName().equals("bicondition")) {
+				ArrayList<XML> tmp = new ArrayList<XML>();
+				tmp = helper1(cur);
+				for (XML xml : tmp) {
+					queue.add(xml);
+				}
+			}
+			if (cur.hasChildren()) {
+				XML[] kids = cur.getChildren();
+				for (XML c : kids) {
+					queue.add(c);
+				}
+			}
+		}
+	}
+	private ArrayList<XML> helper1(XML xml) {
+		XML parent = xml.getParent();
+		XML child1 = xml.getChild(0);
+		XML child2 = xml.getChild(1);
+		//create new logic
+		XML and = parent.addChild("and");
+		and.addChild("condition");
+		and.addChild("condition");
+		XML cond1 = and.getChild(0);
+		XML cond2 = and.getChild(1);
+		cond1.addChild(child1);
+		cond1.addChild(child2);
+		cond2.addChild(child2);
+		cond2.addChild(child1);
+		//remove bicondition
+		XML bicond = parent.getChild("bicondition");
+		parent.removeChild(bicond);
+		//return condition's children
+		ArrayList<XML> children = new ArrayList<XML>();
+		for (XML c : cond1.getChildren()) {
+			children.add(c);
+		}
+		for (XML c : cond2.getChildren()) {
+			children.add(c);
+		}
+		return children;
+	}
 	
 	public void eliminateConditions()
 	{
-		// TODO - Implement the second step in converting logic in tree to CNF:
-		// Replace all conditions with truth preserving disjunctions.
+		
+		ArrayList<XML> queue = new ArrayList<XML>();
+		XML[] children = tree.getChildren();
+		for (XML xml : children) {
+			queue.add(xml);
+		}
+		while (!queue.isEmpty()) {
+			XML cur = queue.remove(0);
+			if (cur.getName().equals("condition")) {
+				ArrayList<XML> tmp = new ArrayList<XML>();
+				tmp = helper2(cur);
+				for (XML xml : tmp) {
+					queue.add(xml);
+				}
+			}
+			if (cur.hasChildren()) {
+				XML[] kids = cur.getChildren();
+				for (XML c : kids) {
+					queue.add(c);
+				}
+			}
+		}
+	}
+	
+	private ArrayList<XML> helper2(XML xml) {
+		XML parent = xml.getParent();
+		XML child1 = xml.getChild(0);
+		XML child2 = xml.getChild(1);
+		parent.addChild("or");
+		XML or = parent.getChild("or");
+		or.addChild("not");
+		or.addChild(child2);
+		or.getChild("not").addChild(child1);
+		ArrayList<XML> children = new ArrayList<XML>();
+		children.add(child1);
+		children.add(child2);
+		return children;
+		
 	}
 		
 	public void moveNegationInwards()
