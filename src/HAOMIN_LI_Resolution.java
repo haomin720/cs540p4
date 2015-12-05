@@ -68,12 +68,13 @@ public class HAOMIN_LI_Resolution extends DrawableTree
 	
 	public void eliminateConditions()
 	{
-		
+		// add first logic into the queue
 		ArrayList<XML> queue = new ArrayList<XML>();
 		XML[] children = tree.getChildren();
 		for (XML xml : children) {
 			queue.add(xml);
 		}
+		// BFS all logic nodes
 		while (!queue.isEmpty()) {
 			XML cur = queue.remove(0);
 			if (cur.getName().equals("condition")) {
@@ -83,7 +84,7 @@ public class HAOMIN_LI_Resolution extends DrawableTree
 					queue.add(xml);
 				}
 			}
-			if (cur.hasChildren()) {
+			else if (cur.hasChildren()) {
 				XML[] kids = cur.getChildren();
 				for (XML c : kids) {
 					queue.add(c);
@@ -110,8 +111,66 @@ public class HAOMIN_LI_Resolution extends DrawableTree
 		
 	public void moveNegationInwards()
 	{
-		// TODO - Implement the third step in converting logic in tree to CNF:
-		// Move negations in a truth preserving way to apply only to literals.
+		//find all the negation that apply to a logic, using BFS
+		ArrayList<XML> neg = new ArrayList<XML>();
+		ArrayList<XML> or = new ArrayList<XML>();
+		ArrayList<XML> and = new ArrayList<XML>();
+		
+		ArrayList<XML> queue = new ArrayList<XML>();
+		XML[] children = tree.getChildren();
+		for (XML xml : children) {
+			queue.add(xml);
+		}
+		while (!queue.isEmpty()) {
+			XML cur = queue.remove(0);
+			if (cur.getName().equals("not")) {
+				if (cur.getChild("not") != null) {
+					neg.add(cur);
+				}
+				else if (cur.getChild("or") != null) {
+					or.add(cur);
+				}
+				else if (cur.getChild("and") != null) {
+					and.add(cur);
+				}
+			}
+			else {
+				if (cur.hasChildren()) {
+					for (XML c : cur.getChildren()) {
+						queue.add(c);
+					}
+				}	
+			}
+		}
+		// replace !!X with X
+		while (!neg.isEmpty()) {
+			XML tmp1 = neg.remove(0);
+			XML parent1 = tmp1.getParent();
+			parent1.addChild(tmp1.getChild("not").getChild(0));
+			parent1.removeChild(tmp1);
+		}
+		// replace !(X&&Y) with !X||!Y
+		while (!and.isEmpty()) {
+			XML tmp2 = and.remove(0);
+			XML parent2 = tmp2.getParent();
+			parent2.addChild("or");
+			parent2.getChild("or").addChild("not");
+			parent2.getChild("or").addChild("not");
+			parent2.getChild("or").getChild(0).addChild(tmp2.getChild(0).getChild(0));
+			parent2.getChild("or").getChild(1).addChild(tmp2.getChild(0).getChild(1));
+			parent2.removeChild(tmp2);
+		}
+		// replace  !(X||Y) with !X && !Y
+		while (!or.isEmpty()) {
+			XML tmp3 = or.remove(0);
+			XML parent3 = tmp3.getParent();
+			parent3.addChild("and");
+			parent3.getChild("and").addChild("not");
+			parent3.getChild("and").addChild("not");
+			parent3.getChild("and").getChild(0).addChild(tmp3.getChild(0).getChild(0));
+			parent3.getChild("and").getChild(1).addChild(tmp3.getChild(0).getChild(1));
+			parent3.removeChild(tmp3);
+		}
 	}
 		
 	public void distributeOrsOverAnds()
