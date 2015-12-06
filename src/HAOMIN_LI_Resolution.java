@@ -11,10 +11,10 @@ public class HAOMIN_LI_Resolution extends DrawableTree
 		this.tree = tree; 
 		dirtyTree = true;
 	}
-		
+
 	public void eliminateBiconditions()
 	{
-		
+
 		// do a BFS to traverse through the tree
 		ArrayList<XML> queue = new ArrayList<XML>();
 		XML[] children = tree.getChildren();
@@ -65,7 +65,7 @@ public class HAOMIN_LI_Resolution extends DrawableTree
 		}
 		return children;
 	}
-	
+
 	public void eliminateConditions()
 	{
 		// add first logic into the queue
@@ -92,7 +92,7 @@ public class HAOMIN_LI_Resolution extends DrawableTree
 			}
 		}
 	}
-	
+
 	private ArrayList<XML> helper2(XML xml) {
 		XML parent = xml.getParent();
 		XML child1 = xml.getChild(0);
@@ -106,34 +106,19 @@ public class HAOMIN_LI_Resolution extends DrawableTree
 		children.add(child1);
 		children.add(child2);
 		return children;
-		
+
 	}
-		
+
 	public void moveNegationInwards()
 	{
 		//find all the negation that apply to a logic, using BFS
-		ArrayList<XML> neg = new ArrayList<XML>();
-		ArrayList<XML> or = new ArrayList<XML>();
-		ArrayList<XML> and = new ArrayList<XML>();
-		
-		ArrayList<XML> queue = new ArrayList<XML>();
-		XML[] children = tree.getChildren();
-		for (XML xml : children) {
-			queue.add(xml);
-		}
-		while (!queue.isEmpty()) {
+		//ArrayList<XML> neg = new ArrayList<XML>();
+		//ArrayList<XML> or = new ArrayList<XML>();
+		//ArrayList<XML> and = new ArrayList<XML>();
+
+		/*
+		 * while (!queue.isEmpty()) {
 			XML cur = queue.remove(0);
-			if (cur.getName().equals("not")) {
-				if (cur.getChild("not") != null) {
-					neg.add(cur);
-				}
-				else if (cur.getChild("or") != null) {
-					or.add(cur);
-				}
-				else if (cur.getChild("and") != null) {
-					and.add(cur);
-				}
-			}
 			else {
 				if (cur.hasChildren()) {
 					for (XML c : cur.getChildren()) {
@@ -142,43 +127,96 @@ public class HAOMIN_LI_Resolution extends DrawableTree
 				}	
 			}
 		}
-		// replace !!X with X
-		while (!neg.isEmpty()) {
-			XML tmp1 = neg.remove(0);
-			XML parent1 = tmp1.getParent();
-			parent1.addChild(tmp1.getChild("not").getChild(0));
-			parent1.removeChild(tmp1);
+		 * */
+		helper3(tree.getChild(0));
+	}
+
+	private void helper3 (XML xml) {
+		//base case
+		if (isAtom(xml)) {
+			return;
 		}
-		// replace !(X&&Y) with !X||!Y
-		while (!and.isEmpty()) {
-			XML tmp2 = and.remove(0);
-			XML parent2 = tmp2.getParent();
-			parent2.addChild("or");
-			parent2.getChild("or").addChild("not");
-			parent2.getChild("or").addChild("not");
-			parent2.getChild("or").getChild(0).addChild(tmp2.getChild(0).getChild(0));
-			parent2.getChild("or").getChild(1).addChild(tmp2.getChild(0).getChild(1));
-			parent2.removeChild(tmp2);
-		}
-		// replace  !(X||Y) with !X && !Y
-		while (!or.isEmpty()) {
-			XML tmp3 = or.remove(0);
-			XML parent3 = tmp3.getParent();
-			parent3.addChild("and");
-			parent3.getChild("and").addChild("not");
-			parent3.getChild("and").addChild("not");
-			parent3.getChild("and").getChild(0).addChild(tmp3.getChild(0).getChild(0));
-			parent3.getChild("and").getChild(1).addChild(tmp3.getChild(0).getChild(1));
-			parent3.removeChild(tmp3);
+		if (xml.getName().equals("not")) {
+			// base case
+			if (isAtom(xml.getChild(0)))
+				return;
+			// replace !!X with X
+			if (xml.getChild("not") != null) {
+				//XML tmp1 = xml.getChild("not");
+				XML parent1 = xml.getParent();
+				parent1.addChild(xml.getChild("not").getChild(0));
+				parent1.removeChild(xml);
+				if (!isAtom(parent1.getChild(0))) {
+					helper3(parent1.getChild(0));
+				}
+				else
+					return;
+			}
+			// replace !(X&&Y) with !X||!Y
+			else if (xml.getChild("or") != null) {
+				XML child1 = xml.getChild(0).getChild(0);
+				XML child2 = xml.getChild(0).getChild(1);
+				XML parent2 = xml.getParent();
+				parent2.addChild("or");
+				parent2.getChild("or").addChild("not");
+				parent2.getChild("or").addChild("not");
+				parent2.getChild("or").getChild(0).addChild(child1);
+				parent2.getChild("or").getChild(1).addChild(child2);
+				parent2.removeChild(xml);
+				if (isAtom(child1) && isAtom(child2)) {
+					return;
+				}
+				else{
+					if(!isAtom(child1))
+						helper3(child1);
+					if(!isAtom(child2))
+						helper3(child2);
+				}	
+			}
+			// replace  !(X||Y) with !X && !Y
+			else if (xml.getChild("and") != null) {
+				XML child1 = xml.getChild(0).getChild(0);
+				XML child2 = xml.getChild(0).getChild(1);
+				XML parent3 = xml.getParent();
+				parent3.addChild("and");
+				parent3.getChild("and").addChild("not");
+				parent3.getChild("and").addChild("not");
+				parent3.getChild("and").getChild(0).addChild(child1);
+				parent3.getChild("and").getChild(1).addChild(child2);
+				parent3.removeChild(xml);
+				if (isAtom(child1) && isAtom(child2)) {
+					return;
+				}
+				else{
+					if(!isAtom(child1))
+						helper3(child1);
+					if(!isAtom(child2))
+						helper3(child2);
+				}	
+			}
+			else {
+				for (XML c : xml.getChildren()) {
+					helper3(c);
+				}
+			}
+			
 		}
 	}
-		
+	
+	//check if the xml is the leave of the tree
+	private boolean isAtom(XML xml) {
+		if (xml.getName().equals("and") || xml.getName().equals("or") || xml.getName().equals("not"))
+			return false;
+		return true;
+	}
+	
+	//replace
 	public void distributeOrsOverAnds()
 	{
-		// TODO - Implement the fourth step in converting logic in tree to CNF:
-		// Move negations in a truth preserving way to apply only to literals.
-	}
 		
+
+	}
+
 	public void collapse()
 	{
 		// TODO - Clean up logic in tree in preparation for Resolution:
@@ -191,7 +229,7 @@ public class HAOMIN_LI_Resolution extends DrawableTree
 		// 3) Also remove any clauses that are always true (tautologies)
 		// from your tree to help speed up resolution.
 	}	
-	
+
 	public boolean applyResolution()
 	{
 		// TODO - Implement resolution on the logic in tree.  New resolvents
@@ -212,45 +250,67 @@ public class HAOMIN_LI_Resolution extends DrawableTree
 		// be resolved, then return null instead.
 		return null;
 	}	
-	
+
 	// REQUIRED HELPERS: may be helpful to implement these before collapse(), applyResolution(), and resolve()
 	// Some terminology reminders regarding the following methods:
 	// atom: a single named proposition with no children independent of whether it is negated
 	// literal: either an atom-node containing a name, or a not-node with that atom as a child
 	// clause: an or-node, all the children of which are literals
 	// set: an and-node, all the children of which are clauses (disjunctions)
-		
+
 	public boolean isLiteralNegated(XML literal) 
 	{ 
-		// TODO - Implement to return true when this literal is negated and false otherwise.
+		// Implement to return true when this literal is negated and false otherwise.
+		if (literal.getName().equals("not")) {
+			return true;
+		}
 		return false; 
 	}
 
 	public String getAtomFromLiteral(XML literal) 
 	{ 
 		// TODO - Implement to return the name of the atom in this literal as a string.
-		return "";
+		if (isLiteralNegated(literal)){
+			return literal.getChild(0).getName();
+		}
+		return literal.getChild(0).getName();
 	}	
-	
+
 	public boolean clauseContainsLiteral(XML clause, String atom, boolean isNegated)
 	{
-		// TODO - Implement to return true when the provided clause contains a literal
-		// with the atomic name and negation (isNegated).  Otherwise, return false.		
+		// Implement to return true when the provided clause contains a literal
+		// with the atomic name and negation (isNegated).  Otherwise, return false.
+		if (isNegated) {
+			for (XML xml : clause.getChildren("not")) {
+				if (xml.getName().equals(atom)) {
+					return true;
+				}
+			}
+		}
+		else {
+			for (XML xml : clause.getChildren()) {
+				if (!isLiteralNegated(xml)) {
+					if (getAtomFromLiteral(xml).equals(atom)) {
+						return true;
+					}
+				}
+			}
+		}
 		return false;
 	}
-	
+
 	public boolean setContainsClause(XML set, XML clause)
 	{
 		// TODO - Implement to return true when the set contains a clause with the
 		// same set of literals as the clause parameter.  Otherwise, return false.
 		return false;
 	}
-	
+
 	public boolean clauseIsTautology(XML clause)
 	{
 		// TODO - Implement to return true when this clause contains a literal
 		// along with the negated form of that same literal.  Otherwise, return false.
 		return false;
 	}	
-	
+
 }
