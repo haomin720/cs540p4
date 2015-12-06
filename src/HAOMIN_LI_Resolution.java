@@ -111,23 +111,7 @@ public class HAOMIN_LI_Resolution extends DrawableTree
 
 	public void moveNegationInwards()
 	{
-		//find all the negation that apply to a logic, using BFS
-		//ArrayList<XML> neg = new ArrayList<XML>();
-		//ArrayList<XML> or = new ArrayList<XML>();
-		//ArrayList<XML> and = new ArrayList<XML>();
-
-		/*
-		 * while (!queue.isEmpty()) {
-			XML cur = queue.remove(0);
-			else {
-				if (cur.hasChildren()) {
-					for (XML c : cur.getChildren()) {
-						queue.add(c);
-					}
-				}	
-			}
-		}
-		 * */
+		//bfs recursive
 		helper3(tree.getChild(0));
 	}
 
@@ -199,7 +183,11 @@ public class HAOMIN_LI_Resolution extends DrawableTree
 					helper3(c);
 				}
 			}
-			
+		}
+		else {
+			for (XML c : xml.getChildren()) {
+				helper3(c);
+			}
 		}
 	}
 	
@@ -210,13 +198,74 @@ public class HAOMIN_LI_Resolution extends DrawableTree
 		return true;
 	}
 	
-	//replace
+	//replace X||(Y&&Z) with (X||Y)&&(X||Z)
 	public void distributeOrsOverAnds()
 	{
-		
-
+		helper4(tree.getChild(0));
 	}
 
+	private void helper4(XML xml) {
+		//base case
+		if (!xml.hasChildren())
+			return;
+		if (xml.getName().equals("or")) {
+			//check both child
+			XML child1 = xml.getChild(0);
+			XML child2 = xml.getChild(1);
+			if (child2.getName().equals("and")) {
+				XML gc1 = child2.getChild(0);
+				XML gc2 = child2.getChild(1);
+				XML parent = xml.getParent();
+				parent.addChild("and");
+				parent.getChild("and").addChild("or");
+				parent.getChild("and").addChild("or");
+				parent.getChild("and").getChild(0).addChild(child1);
+				parent.getChild("and").getChild(0).addChild(gc1);
+				parent.getChild("and").getChild(1).addChild(child1);
+				parent.getChild("and").getChild(1).addChild(gc2);
+				parent.removeChild(xml);
+				XML[] sub = new XML[4];
+				sub[0] = parent.getChild("and").getChild(0).getChild(0);
+				sub[1] = parent.getChild("and").getChild(0).getChild(1);
+				sub[2] = parent.getChild("and").getChild(1).getChild(0);
+				sub[3] = parent.getChild("and").getChild(1).getChild(1);
+				for (XML c : sub){
+					helper4(c);
+				}
+			}
+			else if (child1.getName().equals("and")) {
+				XML gc1 = child1.getChild(0);
+				XML gc2 = child1.getChild(1);
+				XML parent = xml.getParent();
+				parent.addChild("and");
+				parent.getChild("and").addChild("or");
+				parent.getChild("and").addChild("or");
+				parent.getChild("and").getChild(0).addChild(child2);
+				parent.getChild("and").getChild(0).addChild(gc1);
+				parent.getChild("and").getChild(1).addChild(child2);
+				parent.getChild("and").getChild(1).addChild(gc2);
+				parent.removeChild(xml);
+				XML[] sub = new XML[4];
+				sub[0] = parent.getChild("and").getChild(0).getChild(0);
+				sub[1] = parent.getChild("and").getChild(0).getChild(1);
+				sub[2] = parent.getChild("and").getChild(1).getChild(0);
+				sub[3] = parent.getChild("and").getChild(1).getChild(1);
+				for (XML c : sub){
+					helper4(c);
+				}
+			}
+			else {
+				for (XML c : xml.getChildren()) {
+					helper4(c);
+				}
+			}
+		}
+		else {
+			for (XML c : xml.getChildren()) {
+				helper4(c);
+			}
+		}
+	}
 	public void collapse()
 	{
 		// TODO - Clean up logic in tree in preparation for Resolution:
